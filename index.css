@@ -65,3 +65,19 @@ button:active {
     transform: scale(0.9);
     box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);
 }
+
+#reload-el {
+    display: inline-block;
+    background-color: darkred;
+    font-family: 'Martian Mono', monospace;
+    color: black;
+}
+
+#reload-el span {
+    display: inline-block;
+    font-style: italic;
+    font-size: 20px;
+    letter-spacing: -1px;
+    transform: skew(-10deg);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}

@@ -52,6 +52,7 @@ function draw() {
     }
 
     if (firstdraw) {
+        document.getElementById("replay-el").style.display = "none"
         document.getElementById("bet-input").style.display = "none"
         document.getElementById("bet-el").style.display = "none"
         saveMoney((money - betAmount).toFixed(2))
