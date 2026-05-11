@@ -13,10 +13,37 @@ body {
     color: goldenrod;
     font-weight: bold;
     font-size: 48px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
 #response-el {
-    font-style: italic
+    font-style: italic;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+h2 {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#money {
+    color: goldenrod;
+    font-weight: bold;
+    font-size: 30px;
+}
+
+#bet-amount {
+    color: goldenrod;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+#bet-input {
+    display: block;
+    margin: 10px auto;
+    padding: 10px;
+    width: 200px;
+    border: 1px solid black;
+    border-radius: 2px;
 }
 
 button {
@@ -31,6 +58,7 @@ button {
     margin-bottom: 5px;
     border-radius: 2px;
     background-color: goldenrod;
+    
 }
 
 button:active {
