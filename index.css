@@ -1,12 +1,14 @@
 body {
     background-image: url("table.jpg");
     background-size: cover;
+    height: 100svh;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     padding: 20px 0;
     margin: 0;
     text-align: center;
     color: white;
     font-weight: bold;
+    
 }
 
 #title {
