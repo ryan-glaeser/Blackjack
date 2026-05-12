@@ -4,23 +4,16 @@
  * The game handles all the standard rules of blackjack, including blackjack payouts, busts, and pushes.
  */
 
+// Initialize variables to track game state, player money, and UI elements
 let newcard = 0
 let newcardNum = ""
 let sum = 0
 let dealersum = 0
+let dealerHiddenCard = 0
+let dealerHiddenCardNum = ""
 let aces = 0
 let dealeraces = 0
 let money = 100
-if (localStorage.getItem("money") !== null) {
-    money = parseFloat(localStorage.getItem("money"))
-} else {
-    localStorage.setItem("money", money)
-}
-saveMoney(money)
-if (money <= 0) {
-    document.getElementById("response-el").textContent = "You've lost all your money! Admit defeat?"
-    document.getElementById("reload-el").style.display = "block"
-}
 let betAmount = 10
 let hasBlackjack = false
 let isAlive = true
@@ -32,6 +25,21 @@ let cardDict = {
     1: "A", 2: "2", 3: "3", 4: "4", 
     5: "5", 6: "6", 7: "7", 8: "8", 
     9: "9", 10: "10", 11: "J", 12: "Q", 13: "K"
+}
+//const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+//Check if returning player with saved money, otherwise initialize money in localStorage
+if (localStorage.getItem("money") !== null) {
+    money = parseFloat(localStorage.getItem("money"))
+} else {
+    localStorage.setItem("money", money)
+}
+saveMoney(money)
+
+//Check if returning player has no money left
+if (money <= 0) {
+    document.getElementById("response-el").textContent = "You've lost all your money! Admit defeat?"
+    document.getElementById("reload-el").style.display = "block"
 }
 
 /* Main 'play' function that runs when the player clicks the "Draw" button or starts a new game. 
@@ -69,21 +77,9 @@ function draw() {
             dealersum += newcard
         }
 
-        newcard = Math.floor(Math.random() * (13)) + 1
-        newcardNum = cardDict[newcard]
-        dealercards.textContent += ", " + newcardNum
-        if (newcard === 1) {
-            if (dealersum + 11 > 21) {
-                dealersum += 1
-            } else {
-                dealersum += 11
-                dealeraces++
-            }
-        } else if (newcard >= 10) {
-            dealersum += 10
-        } else {
-            dealersum += newcard
-        }
+        dealerHiddenCard = Math.floor(Math.random() * (13)) + 1
+        dealerHiddenCardNum = cardDict[dealerHiddenCard]
+        dealercards.textContent += ", " + "[Hidden]"
 
         document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
 
@@ -113,7 +109,8 @@ function draw() {
         if (sum === 22) {
             sum -= 10
             aces--}
-    } else {
+        } else {
+        
         newcard = Math.floor(Math.random() * (13)) + 1
         newcardNum = cardDict[newcard]
         cards.textContent += ", " + newcardNum
@@ -153,6 +150,11 @@ function draw() {
         document.getElementById("replay-el").style.display = "block"
         document.getElementById("bet-input").style.display = "block"
         document.getElementById("bet-el").style.display = "block"
+        if (money <= 0) {
+            document.getElementById("response-el").textContent = "You've lost all your money! Admit defeat?"
+            document.getElementById("reload-el").style.display = "block"
+            document.getElementById("replay-el").style.display = "none"
+        }
     }
 }
 
@@ -171,6 +173,25 @@ function stand() {
         document.getElementById("response-el").textContent = "You've already lost, you can't stand."
     } else {
 
+        //Reveal dealer's hidden card and update dealer's sum
+        if (dealerHiddenCard != 0) {
+            dealercards.textContent = dealercards.textContent.split(", ")[0] + ", " + dealerHiddenCardNum
+            if (dealerHiddenCard === 1) {
+                if (dealersum + 11 > 21) {
+                    dealersum += 1
+                } else {
+                    dealersum += 11
+                    dealeraces++
+                }
+            } else if (dealerHiddenCard >= 10) {
+                dealersum += 10
+            } else {
+                dealersum += dealerHiddenCard
+            }
+            dealerHiddenCard = 0
+        }
+        
+        //await sleep(1000)
         // Dealer draws cards until they have at least 17 points or bust
         while (dealersum < 17) {
             newcard = Math.floor(Math.random() * (13)) + 1
@@ -274,6 +295,7 @@ function replay() {
     aces = 0
     firstdraw = true
     document.getElementById("replay-el").style.display = "none"
+    document.getElementById("draw-el").style.display = "block"
     document.getElementById("response-el").textContent = "Draw another card?"
     draw()
 }
@@ -313,5 +335,7 @@ function reload() {
     saveMoney(100)
     document.getElementById("response-el").textContent = "Well, you've given up. Try again!"
     document.getElementById("reload-el").style.display = "none"
-    document.getElementById("draw-el").textContent = "Start Game?"
+    document.getElementById("stand-el").style.display = "none"
+    document.getElementById("draw-el").style.display = "none"
+    document.getElementById("replay-el").style.display = "block"
 }
