@@ -18,15 +18,30 @@ let betAmount = 10
 let hasBlackjack = false
 let isAlive = true
 let hasWon = false
-let cards = document.getElementById("cards-el")
-let dealercards = document.getElementById("dealercards-el")
 let firstdraw = true
 let cardDict = {
     1: "A", 2: "2", 3: "3", 4: "4", 
     5: "5", 6: "6", 7: "7", 8: "8", 
     9: "9", 10: "10", 11: "J", 12: "Q", 13: "K"
 }
-//const sleep = ms => new Promise(r => setTimeout(r, ms));
+const cardImages = {
+    1: "ace_of_hearts.png", 2: "2_of_hearts.png", 3: "3_of_hearts.png", 4: "4_of_hearts.png",
+    5: "5_of_hearts.png", 6: "6_of_hearts.png", 7: "7_of_hearts.png", 8: "8_of_hearts.png",
+    9: "9_of_hearts.png", 10: "10_of_hearts.png", 11: "jack_of_hearts.png", 12: "queen_of_hearts.png", 13: "king_of_hearts.png",
+    14: "ace_of_diamonds.png", 15: "2_of_diamonds.png", 16: "3_of_diamonds.png", 17: "4_of_diamonds.png",
+    18: "5_of_diamonds.png", 19: "6_of_diamonds.png", 20: "7_of_diamonds.png", 21: "8_of_diamonds.png",
+    22: "9_of_diamonds.png", 23: "10_of_diamonds.png", 24: "jack_of_diamonds.png", 25: "queen_of_diamonds.png", 26: "king_of_diamonds.png",
+    27: "ace_of_clubs.png", 28: "2_of_clubs.png", 29: "3_of_clubs.png", 30: "4_of_clubs.png",
+    31: "5_of_clubs.png", 32: "6_of_clubs.png", 33: "7_of_clubs.png", 34: "8_of_clubs.png",
+    35: "9_of_clubs.png", 36: "10_of_clubs.png", 37: "jack_of_clubs.png", 38: "queen_of_clubs.png", 39: "king_of_clubs.png",
+    40: "ace_of_spades.png", 41: "2_of_spades.png", 42: "3_of_spades.png", 43: "4_of_spades.png",
+    44: "5_of_spades.png", 45: "6_of_spades.png", 46: "7_of_spades.png", 47: "8_of_spades.png",
+    48: "9_of_spades.png", 49: "10_of_spades.png", 50: "jack_of_spades.png", 51: "queen_of_spades.png", 52: "king_of_spades.png"
+}
+const dealerContainer = document.getElementById("dealer-container")
+const playerContainer = document.getElementById("player-container")
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 //Check if returning player with saved money, otherwise initialize money in localStorage
 if (localStorage.getItem("money") !== null) {
@@ -46,7 +61,7 @@ if (money <= 0) {
  * Handles both the initial deal and subsequent draws.
  */
 function draw() {
-    document.getElementById("draw-el").textContent = "Draw"
+    document.getElementById("draw-el").textContent = "Hit me"
     document.getElementById("draw-el").style.width = "100px"
     document.getElementById("stand-el").style.width = "100px"
     document.getElementById("stand-el").style.display = "block"
@@ -59,15 +74,18 @@ function draw() {
         exit()
     }
 
+    // Initial deal
     if (firstdraw) {
+
+        // Update UI and subtract bet amount from player's money for the current game
         document.getElementById("replay-el").style.display = "none"
         document.getElementById("bet-input").style.display = "none"
         document.getElementById("bet-el").style.display = "none"
         saveMoney((money - betAmount).toFixed(2))
         
+        // Deal hand to the dealer
         newcard = Math.floor(Math.random() * (13)) + 1
         newcardNum = cardDict[newcard]
-        dealercards.textContent = "Dealer's Hand: " + newcardNum
         if (newcard === 1) {
             dealeraces++
             dealersum += 11
@@ -77,49 +95,58 @@ function draw() {
             dealersum += newcard
         }
 
+        // Display the dealer's first card as an image instead of text
+        const dealerCard1 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
+        dealerCard1.src = "images/" + cardImages[cardIndex]
+        dealerCard1.style.width = "80px"
+        dealerCard1.style.height = "120px"
+        dealerCard1.style.objectFit = "cover"
+        dealerContainer.appendChild(dealerCard1)
+
+        // Draw the dealer's hidden card
         dealerHiddenCard = Math.floor(Math.random() * (13)) + 1
         dealerHiddenCardNum = cardDict[dealerHiddenCard]
-        dealercards.textContent += ", " + "[Hidden]"
-
         document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
+        const hiddenCardImg = document.createElement("img")
+        hiddenCardImg.src = "images/cardback.png"
+        hiddenCardImg.id = "hidden-card-img" // Added an ID to easily find/replace it later
+        hiddenCardImg.style.width = "80px"
+        hiddenCardImg.style.height = "120px"
+        hiddenCardImg.style.objectFit = "cover"
+        dealerContainer.appendChild(hiddenCardImg)
+
+        // Deal hand to the player
+        newcard = Math.floor(Math.random() * (13)) + 1
+        newcardNum = cardDict[newcard]
+        if (newcard === 1) {
+            aces++
+            sum += 11
+        } else if (newcard >= 10) {
+            sum += 10
+        } else {
+            sum += newcard
+        }
+
+        // Display the player's first card as an image instead of text
+        const playerCard1 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
+        playerCard1.src = "images/" + cardImages[cardIndex]
+        playerCard1.style.width = "80px"
+        playerCard1.style.height = "120px"
+        playerCard1.style.objectFit = "cover"
+        playerContainer.appendChild(playerCard1)
 
         newcard = Math.floor(Math.random() * (13)) + 1
         newcardNum = cardDict[newcard]
-        cards.textContent = "Cards: " + newcardNum
         if (newcard === 1) {
             aces++
-            sum += 11
-        } else if (newcard >= 10) {
-            sum += 10
-        } else {
-            sum += newcard
-        }
-        newcard = Math.floor(Math.random() * (13)) + 1
-        newcardNum = cardDict[newcard]
-        cards.textContent += ", " + newcardNum
-        if (newcard === 1) {
-            aces++
-            sum += 11
-        } else if (newcard >= 10) {
-            sum += 10
-        } else {
-            sum += newcard
-        }
-        firstdraw = false
-        if (sum === 22) {
-            sum -= 10
-            aces--}
-        } else {
-        
-        newcard = Math.floor(Math.random() * (13)) + 1
-        newcardNum = cardDict[newcard]
-        cards.textContent += ", " + newcardNum
-        if (newcard === 1) {
             if (sum + 11 > 21) {
                 sum += 1
             } else {
                 sum += 11
-                aces++
             }
         } else if (newcard >= 10) {
             if (sum + 10 > 21 && aces > 0) {
@@ -134,15 +161,69 @@ function draw() {
             }
             sum += newcard
         }
+
+        //Display the player's second card as an image instead of text
+        const playerCard2 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
+        playerCard2.src = "images/" + cardImages[cardIndex]
+        playerCard2.style.width = "80px"
+        playerCard2.style.height = "120px"
+        playerCard2.style.objectFit = "cover"
+        playerContainer.appendChild(playerCard2)
+
+        // Handle case where player is dealt two aces initially
+        firstdraw = false
+        if (sum === 22) {
+            sum -= 10
+            aces--
+        }
+
+        // Check for blackjack and set flag for 3:2 payout on win
+        if (sum === 21) {
+            hasBlackjack = true
+        }
+        } else {
+
+        // Subsequent draws after the initial deal
+        newcard = Math.floor(Math.random() * (13)) + 1
+        newcardNum = cardDict[newcard]
+        if (newcard === 1) {
+            aces++
+            if (sum + 11 > 21) {
+                sum += 1
+            } else {
+                sum += 11
+            }
+        } else if (newcard >= 10) {
+            if (sum + 10 > 21 && aces > 0) {
+                sum += 1
+                aces--
+            }
+            sum += 10
+        } else {
+            if (sum + newcard > 21 && aces > 0) {
+                sum -= 10
+                aces--
+            }
+            sum += newcard
+        }
+
+        // Display the newly drawn card as an image instead of text
+        const nextCardImg = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
+        nextCardImg.src = "images/" + cardImages[cardIndex]
+        nextCardImg.style.width = "80px"
+        nextCardImg.style.height = "120px"
+        nextCardImg.style.objectFit = "cover"
+        playerContainer.appendChild(nextCardImg)
     }
 
     document.getElementById("sum-el").textContent = "Sum: " + sum
 
-    // Check if player has blackjack, can draw another card, or busts
-    if (sum === 21) {
-        document.getElementById("response-el").textContent = "Blackjack!!!"
-        hasBlackjack = true
-    } else if (sum < 21) {
+    // Check if player has won, lost, or can continue drawing
+    if (sum <= 21) {
         document.getElementById("response-el").textContent = "Draw another one?"
     } else {
         document.getElementById("response-el").textContent = "Bust!!"
@@ -162,7 +243,7 @@ function draw() {
  * Then the player's and dealer's sums will be compared to determine the winner,\
  * and the appropriate message will be displayed.
  */
-function stand() {
+async function stand() {
 
     // Check if player has already won or lost before allowing them to stand
     if (hasWon) {
@@ -175,28 +256,47 @@ function stand() {
 
         //Reveal dealer's hidden card and update dealer's sum
         if (dealerHiddenCard != 0) {
-            dealercards.textContent = dealercards.textContent.split(", ")[0] + ", " + dealerHiddenCardNum
+            const hiddenImg = document.getElementById("hidden-card-img")
+            if (hiddenImg) {
+                randomSuit = Math.floor(Math.random() * 4) + 1
+                cardIndex = dealerHiddenCard + (randomSuit - 1) * 13
+                hiddenImg.src = "images/" + cardImages[cardIndex]
+            }
             if (dealerHiddenCard === 1) {
+                dealeraces++
                 if (dealersum + 11 > 21) {
                     dealersum += 1
                 } else {
                     dealersum += 11
-                    dealeraces++
                 }
             } else if (dealerHiddenCard >= 10) {
                 dealersum += 10
             } else {
                 dealersum += dealerHiddenCard
             }
+            document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
             dealerHiddenCard = 0
         }
         
-        //await sleep(1000)
+        
+
         // Dealer draws cards until they have at least 17 points or bust
         while (dealersum < 17) {
+            // Add a short delay before the dealer starts drawing cards to improve user experience
+            await sleep(1000)
+            
             newcard = Math.floor(Math.random() * (13)) + 1
             newcardNum = cardDict[newcard]
-            dealercards.textContent += ", " + newcardNum
+            
+            const nextCardImg = document.createElement("img")
+            randomSuit = Math.floor(Math.random() * 4) + 1
+            cardIndex = newcard + (randomSuit - 1) * 13
+            nextCardImg.src = "images/" + cardImages[cardIndex]
+            nextCardImg.style.width = "80px"
+            nextCardImg.style.height = "120px"
+            nextCardImg.style.objectFit = "cover"
+            dealerContainer.appendChild(nextCardImg)
+
             if (newcard === 1) {
                 if (dealersum + 11 > 21) {
                     dealersum += 1
@@ -217,11 +317,16 @@ function stand() {
                 }
                 dealersum += newcard
             }
+            document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
         }
         if (dealersum > 21) {
             // Dealer busts, player wins
 
-            document.getElementById("response-el").textContent = "Dealer busts, you win!!!"
+            if (hasBlackjack) {
+                document.getElementById("response-el").textContent = "Dealer busts and you have Blackjack! You win!!!"
+            } else {
+                document.getElementById("response-el").textContent = "Dealer busts, you win!!"
+            }
             hasWon = true
 
             // If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
@@ -244,22 +349,23 @@ function stand() {
             document.getElementById("response-el").textContent = "Dealer wins."
             isAlive = false
         } else {
-            // Player wins
+            // Player wins. If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
 
-            document.getElementById("response-el").textContent = "You win!!"
             hasWon = true
-            
-            // If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
             if (hasBlackjack) {
+                document.getElementById("response-el").textContent = "Blackjack! You win!!"
                 money = (Number(money) + Number((betAmount * 2.5).toFixed(2))).toFixed(2)
             } else {
+                document.getElementById("response-el").textContent = "You win!!"
                 money = (Number(money) + Number((betAmount * 2).toFixed(2))).toFixed(2)
             }
             saveMoney(money)
         }
         document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
     }
-    document.getElementById("replay-el").style.display = "block"
+    if (money > 0) {
+        document.getElementById("replay-el").style.display = "block"
+    }
     
     //Player has lost all of their money, show reload button to start over
     if (money === 0) {
@@ -295,6 +401,8 @@ function replay() {
     aces = 0
     firstdraw = true
     document.getElementById("replay-el").style.display = "none"
+    dealerContainer.innerHTML = ""
+    playerContainer.innerHTML = ""
     document.getElementById("draw-el").style.display = "block"
     document.getElementById("response-el").textContent = "Draw another card?"
     draw()
@@ -321,6 +429,9 @@ function bet() {
     }
 }
 
+/* Helper function to update the player's money in localStorage and on the UI after each game.
+ * Also handles rounding to 2 decimal places and ensures money is displayed as an integer if it's a whole number.
+ */
 function saveMoney(newAmount) {
     money = newAmount;
     // Optional: Keep the rounding logic here so it's consistent
@@ -331,6 +442,10 @@ function saveMoney(newAmount) {
     document.getElementById("money").textContent = "Money: $" + money;
 }
 
+/* Upon losing all money, player can click the "Reload" button to reset their money back to $100 and start over.
+ * This allows the player to keep playing even after losing all their money, without having to 
+ * manually clear localStorage.
+ */
 function reload() {
     saveMoney(100)
     document.getElementById("response-el").textContent = "Well, you've given up. Try again!"
@@ -338,4 +453,7 @@ function reload() {
     document.getElementById("stand-el").style.display = "none"
     document.getElementById("draw-el").style.display = "none"
     document.getElementById("replay-el").style.display = "block"
+    document.getElementById("replay-el").textContent = "Start New Game?"
+    dealerContainer.innerHTML = ""
+    playerContainer.innerHTML = ""
 }

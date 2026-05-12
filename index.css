@@ -1,5 +1,5 @@
 body {
-    background-image: url("table.jpg");
+    background-image: url("images/table.jpg");
     background-size: cover;
     height: 100svh;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
@@ -25,6 +25,19 @@ body {
 
 h2 {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#dealercards-el, #cards-el {
+    text-decoration: underline;
+    color: goldenrod;
+    font-weight: bold;
+}
+
+#dealer-container, #player-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
 }
 
 #money {
