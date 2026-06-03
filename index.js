@@ -5,6 +5,7 @@
  */
 
 // Initialize variables to track game state, player money, and UI elements
+let currentUserId = null
 let newcard = 0
 let newcardNum = ""
 let sum = 0
@@ -43,62 +44,96 @@ const playerContainer = document.getElementById("player-container")
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Function to fetch the player profile from your local backend
-async function loadPlayerBalance() {
-    try {
-        const response = await fetch('http://localhost:3000/api/user/balance');
-        const data = await response.json();
-        
-        console.log("Data received from backend:", data);
-        
-        // Update your existing UI variable with the backend data
-        money = data.wallet_balance;
-        document.getElementById("money").textContent = "Money: $" + money.toFixed(2);
-        
-        //Check if returning player has no money left
-        if (money <= 0) {
-        document.getElementById("response-el").textContent = "You've lost all your money! Admit defeat?"
-        document.getElementById("reload-el").style.display = "block"
-        document.getElementById("draw-el").style.display = "none"
-}
-        
-    } catch (error) {
-        console.error("Error connecting to the backend server:", error);
-    }
-}
+async function handleRegister() {
+    const username = document.getElementById("username-input").value;
+    const password = document.getElementById("password-input").value;
+    const errorEl = document.getElementById("auth-error");
 
-// Function to push the current wallet state back to the SQL database
-async function savePlayerBalance(currentBalance) {
-    console.log("Value being sent to savePlayerBalance:", currentBalance, "Type:", typeof currentBalance);
-    
     try {
-        const response = await fetch('http://localhost:3000/api/user/save-balance', {
+        const response = await fetch('http://localhost:3000/api/auth/register', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ newBalance: currentBalance })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
         });
+        const data = await response.json();
 
-        // Check if the server returned a bad status code (400, 500, etc.)
         if (!response.ok) {
-            const errorText = await response.text(); // Get the plain text error instead of parsing JSON
-            console.error(`Server Error (${response.status}):`, errorText);
+            errorEl.textContent = data.error;
             return;
         }
 
-        const data = await response.json();
-        console.log("Database updated confirmation:", data);
-        document.getElementById("money").textContent = "Money: $" + currentBalance.toFixed(2);
-        money = currentBalance;
-
-    } catch (error) {
-        console.error("Failed to save balance to backend:", error);
+        errorEl.style.color = "goldenrod";
+        errorEl.style.textShadow = "2px 2px 4px rgba(0,0,0,0.5)";
+        errorEl.textContent = "Registration successful! You can now log in.";
+    } catch (err) {
+        errorEl.textContent = "Cannot connect to server.";
     }
 }
 
-// Call this function when the web page finishes loading
-window.onload = loadPlayerBalance;
+async function handleLogin() {
+    const username = document.getElementById("username-input").value;
+    const password = document.getElementById("password-input").value;
+    const errorEl = document.getElementById("auth-error");
+
+    try {
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            errorEl.style.color = "red";
+            errorEl.textContent = data.error;
+            return;
+        }
+
+        // Save session data
+        currentUserId = data.userId;
+        money = data.wallet_balance;
+
+        // Swap UIs
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("game-container").style.display = "block";
+        
+        // Render user specific money
+        document.getElementById("money").textContent = "Money: $" + money;
+        document.getElementById("response-el").textContent = `Welcome back, ${data.username}! Draw another card?`;
+
+    } catch (err) {
+        errorEl.textContent = "Cannot connect to server.";
+    }
+}
+
+async function loadPlayerBalance() {
+    if (!currentUserId) return;
+    try {
+        const response = await fetch(`http://localhost:3000/api/user/balance/${currentUserId}`);
+        const data = await response.json();
+        money = data.wallet_balance;
+        document.getElementById("money").textContent = "Money: $" + money;
+    } catch (error) {
+        console.error("Error loading balance:", error);
+    }
+}
+
+async function savePlayerBalance(currentBalance) {
+    if (!currentUserId) return;
+    try {
+        const response = await fetch('http://localhost:3000/api/user/save-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId, newBalance: Number(currentBalance) })
+        });
+        
+        const data = await response.json();
+        console.log("Sync success:", data);
+        document.getElementById("money").textContent = "Money: $" + currentBalance;
+    } catch (error) {
+        console.error("Failed to sync state:", error);
+    }
+}
 
 
 /* Main 'play' function that runs when the player clicks the "Draw" button or starts a new game. 
@@ -125,7 +160,8 @@ function draw() {
         document.getElementById("replay-el").style.display = "none"
         document.getElementById("bet-input").style.display = "none"
         document.getElementById("bet-el").style.display = "none"
-        savePlayerBalance(Number(money - betAmount))
+        money -= betAmount
+        savePlayerBalance(money)
         
         // Deal hand to the dealer
         newcard = Math.floor(Math.random() * (13)) + 1

@@ -1,27 +1,42 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Blackjack</title>
-        <link rel="stylesheet" href="index.css">
-        <h1 id="title">Blackjack </h1>
-        <h2 id="response-el">Want to play a round?</h2>
-        <h2 id="dealercards-el">Dealer's Hand:</h2>
-        <div id="dealer-container"></div>
-        <h2 id="dealersum-el">Dealer's Sum:</h2>
-        <h2 id="cards-el">Player's Hand:</h2>
-        <div id="player-container"></div>
-        <h2 id="sum-el">Sum: </h2>
-        <button onclick="draw()" id="draw-el">Start Game?</button>
-        <button onclick="stand()" id="stand-el" style="display: none">Stand</button>
-        <button onclick="replay()" id="replay-el" style="display: none">Replay?</button>
-        <h2 id="money">Money: $100</h2>
-        <h2 id="bet-amount">Current Bet: $10</h2>
-        <input type="number" id="bet-input" placeholder="Enter your bet">
-        <button onclick="bet()" id="bet-el">Bet</button>
-        <button onclick="reload()" id="reload-el" style="display: none">
-            <span>Admit Defeat and Start Over</span></button>
-        <script src="index.js"></script>
+        <div id="auth-container" style="text-align: center; margin-top: 50px;">
+            <h2>Blackjack Club Login</h2>
+            <div style="margin-bottom: 10px;">
+                <input type="text" id="username-input" placeholder="Username" style="padding: 5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <input type="password" id="password-input" placeholder="Password" style="padding: 5px;">
+            </div>
+            <button onclick="handleLogin()" style="padding: 5px 15px;">Login</button>
+            <button onclick="handleRegister()" style="padding: 5px 15px;">Register</button>
+            <p id="auth-error" style="color: red; font-weight: bold;"></p>
+        </div>
+
+        <div id="game-container" style="display: none;">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Blackjack</title>
+            <link rel="stylesheet" href="index.css">
+            <h1 id="title">Blackjack </h1>
+            <h2 id="response-el">Want to play a round?</h2>
+            <h2 id="dealercards-el">Dealer's Hand:</h2>
+            <div id="dealer-container"></div>
+            <h2 id="dealersum-el">Dealer's Sum:</h2>
+            <h2 id="cards-el">Player's Hand:</h2>
+            <div id="player-container"></div>
+            <h2 id="sum-el">Sum: </h2>
+            <button onclick="draw()" id="draw-el">Start Game?</button>
+            <button onclick="stand()" id="stand-el" style="display: none">Stand</button>
+            <button onclick="replay()" id="replay-el" style="display: none">Replay?</button>
+            <h2 id="money">Money: $100</h2>
+            <h2 id="bet-amount">Current Bet: $10</h2>
+            <input type="number" id="bet-input" placeholder="Enter your bet">
+            <button onclick="bet()" id="bet-el">Bet</button>
+            <button onclick="reload()" id="reload-el" style="display: none">
+                <span>Admit Defeat and Start Over</span></button>
+            <script src="index.js"></script>
+        </div>
     </head>
     <body></body>
 </html>
