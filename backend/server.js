@@ -3,7 +3,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs'); // Library for hashing passwords
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Azure dictates the port via environment variables
+const PORT = process.env.PORT || 3000; 
 
 app.use(cors());
 app.use(express.json());
@@ -12,7 +12,7 @@ let db;
 
 // DYNAMIC DATABASE SWITCH
 if (process.env.DATABASE_URL) {
-    // If running in the cloud (Azure), connect to your live Postgres database
+    // If running in the cloud (Render), connect to your live Postgres database
     const { Client } = require('pg');
     db = new Client({
         connectionString: process.env.DATABASE_URL,
@@ -62,15 +62,16 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const sql = "INSERT INTO users (username, password_hash) VALUES ($1, $2)";
         
         if (process.env.DATABASE_URL) {
             // Postgres logic
+            const sql = "INSERT INTO users (username, password_hash) VALUES ($1, $2)";
             await db.query(sql, [username, hashedPassword]);
             res.json({ message: "User registered successfully!" });
         } else {
             // SQLite fallback fallback
-            db.run("INSERT INTO users (username, password_hash) VALUES (?, ?)", [username, hashedPassword], function(err) {
+            const sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
+            db.run(sql, [username, hashedPassword], function(err) {
                 if (err) {
                     if (err.message.includes("UNIQUE constraint failed")) {
                         return res.status(400).json({ error: "Username is already taken." });
@@ -81,7 +82,7 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
     } catch (error) {
-        if (error.message && error.message.includes("unique constraint")) {
+        if (error.message && (error.message.includes("unique constraint") || error.message.includes("UNIQUE constraint"))) {
             return res.status(400).json({ error: "Username is already taken." });
         }
         res.status(500).json({ error: "Server error during registration." });
@@ -98,9 +99,9 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user;
         if (process.env.DATABASE_URL) {
-            // Postgres logic
+            // Postgres logic - FIX: extract the first object from the rows array
             const result = await db.query("SELECT * FROM users WHERE username = $1", [username]);
-            user = result.rows;
+            user = result.rows; 
         } else {
             // SQLite fallback
             user = await new Promise((resolve, reject) => {
@@ -137,6 +138,7 @@ app.get('/api/user/balance/:userId', async (req, res) => {
     try {
         let row;
         if (process.env.DATABASE_URL) {
+            // Postgres logic - FIX: extract the first row object from the array
             const result = await db.query("SELECT username, wallet_balance FROM users WHERE id = $1", [userId]);
             row = result.rows;
         } else {
@@ -180,5 +182,5 @@ app.post('/api/user/save-balance', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Secure Blackjack backend running at http://localhost:3000`);
+    console.log(`Secure Blackjack backend running on port ${PORT}`);
 });

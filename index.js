@@ -141,7 +141,7 @@ async function savePlayerBalance(currentBalance) {
 /* Main 'play' function that runs when the player clicks the "Draw" button or starts a new game. 
  * Handles both the initial deal and subsequent draws.
  */
-function draw() {
+async function draw() {
     document.getElementById("draw-el").textContent = "Hit me"
     document.getElementById("draw-el").style.width = "100px"
     document.getElementById("stand-el").style.width = "100px"
@@ -163,7 +163,7 @@ function draw() {
         document.getElementById("bet-input").style.display = "none"
         document.getElementById("bet-el").style.display = "none"
         money -= betAmount
-        savePlayerBalance(money)
+        await savePlayerBalance(money)
         
         // Deal hand to the dealer
         newcard = Math.floor(Math.random() * (13)) + 1
@@ -511,8 +511,7 @@ function bet() {
 
 
 /* Upon losing all money, player can click the "Reload" button to reset their money back to $100 and start over.
- * This allows the player to keep playing even after losing all their money, without having to 
- * manually clear localStorage.
+ * This allows the player to keep playing even after losing all their money
  */
 function reload() {
     savePlayerBalance(500)
