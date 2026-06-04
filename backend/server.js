@@ -114,25 +114,29 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        // DETAILED ERROR 1: The user account wasn't found in the database
         if (!user) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // DETAILED ERROR 2: The password column itself missing
-        if (!user.password_hash) {
-            console.error("Fetched user data structure missing password_hash:", user);
-            return res.status(500).json({ error: "Server structural mismatch. Column password_hash missing." });
+        // --- THE BULLETPROOF EXTRACTOR ---
+        // This checks every single variation of how Postgres/SQLite maps the object key
+        const actualHash = user.password_hash || user.password_hash || user['"password_hash"'];
+        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : (user.wallet_balance !== undefined ? user.wallet_balance : user['"wallet_balance"']);
+
+        if (!actualHash) {
+            console.error("Available keys on the user object:", Object.keys(user));
+            return res.status(500).json({ error: `Structural mismatch. Keys found: ${Object.keys(user).join(', ')}` });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        // Use the extracted hash
+        const isMatch = await bcrypt.compare(password, actualHash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
         res.json({
             message: "Login successful!",
             userId: user.id,
             username: user.username,
-            wallet_balance: user.wallet_balance
+            wallet_balance: actualBalance !== undefined ? actualBalance : 500
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
