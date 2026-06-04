@@ -99,9 +99,12 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user;
         if (process.env.DATABASE_URL) {
-            // Postgres logic - FIX: extract the first object from the rows array
+            // Postgres logic
             const result = await db.query("SELECT * FROM users WHERE username = $1", [username]);
             user = result.rows; 
+            
+            // This debug log will let you see exactly what properties exist on the object
+            console.log("Postgres user object returned:", user);
         } else {
             // SQLite fallback
             user = await new Promise((resolve, reject) => {
@@ -114,45 +117,25 @@ app.post('/api/auth/login', async (req, res) => {
 
         if (!user) return res.status(401).json({ error: "Invalid username or password." });
 
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        // Safe extraction: handles case sensitivity differences between database engines
+        const hash = user.password_hash || user.password_hash; 
+        
+        if (!hash) {
+            console.error("Password hash column missing or undefined in user object structure!");
+            return res.status(500).json({ error: "Database structure mismatch error." });
+        }
+
+        const isMatch = await bcrypt.compare(password, hash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
         res.json({
             message: "Login successful!",
             userId: user.id,
             username: user.username,
-            wallet_balance: user.wallet_balance
+            wallet_balance: user.wallet_balance !== undefined ? user.wallet_balance : user.wallet_balance
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ==========================================
-// GAME STATE ENDPOINTS
-// ==========================================
-
-// Fetch Balance
-app.get('/api/user/balance/:userId', async (req, res) => {
-    const { userId } = req.params;
-    try {
-        let row;
-        if (process.env.DATABASE_URL) {
-            // Postgres logic - FIX: extract the first row object from the array
-            const result = await db.query("SELECT username, wallet_balance FROM users WHERE id = $1", [userId]);
-            row = result.rows;
-        } else {
-            row = await new Promise((resolve, reject) => {
-                db.get("SELECT username, wallet_balance FROM users WHERE id = ?", [userId], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
-        }
-
-        if (!row) return res.status(404).json({ error: "User not found." });
-        res.json(row);
-    } catch (error) {
+        console.error("Login route error:", error);
         res.status(500).json({ error: error.message });
     }
 });
