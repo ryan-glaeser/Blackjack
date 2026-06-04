@@ -78,7 +78,7 @@ async function handleLogin() {
     const errorEl = document.getElementById("auth-error");
 
     try {
-        const response = await fetch('http://localhost:3000/api/auth/login', {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -111,7 +111,7 @@ async function handleLogin() {
 async function loadPlayerBalance() {
     if (!currentUserId) return;
     try {
-        const response = await fetch(`http://localhost:3000/api/user/balance/${currentUserId}`);
+        const response = await fetch(`${API_URL}/api/user/balance/${currentUserId}`);
         const data = await response.json();
         money = data.wallet_balance;
         document.getElementById("money").textContent = "Money: $" + money;
@@ -123,7 +123,7 @@ async function loadPlayerBalance() {
 async function savePlayerBalance(currentBalance) {
     if (!currentUserId) return;
     try {
-        const response = await fetch('http://localhost:3000/api/user/save-balance', {
+        const response = await fetch(`${API_URL}/api/user/save-balance`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: currentUserId, newBalance: Number(currentBalance) })
