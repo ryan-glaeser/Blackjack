@@ -22,22 +22,15 @@ if (process.env.DATABASE_URL) {
     db.connect();
     console.log("Connected to Cloud PostgreSQL Database.");
     
-    // TEMPORARY FORCE RESET: This guarantees the old structure is completely wiped out!
-    db.query('DROP TABLE IF EXISTS users;')
-      .then(() => {
-          console.log("Old users table forcefully dropped.");
-          // Now safely create the correct version
-          return db.query(`
-              CREATE TABLE users (
-                  id SERIAL PRIMARY KEY,
-                  username TEXT UNIQUE NOT NULL,
-                  "password_hash" TEXT NOT NULL,
-                  "wallet_balance" FLOAT DEFAULT 500
-              )
-          `);
-      })
-      .then(() => console.log("Fresh, correctly-cased users table created successfully."))
-      .catch(err => console.error("Database initialization error:", err));
+    // Stable configuration: safeguards existing data while maintaining explicit casing
+    db.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            "password_hash" TEXT NOT NULL,
+            "wallet_balance" FLOAT DEFAULT 500
+        )
+    `).catch(err => console.error("Database initialization error:", err));
 
 } else {
     const sqlite3 = require('sqlite3').verbose();
