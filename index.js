@@ -44,13 +44,15 @@ const playerContainer = document.getElementById("player-container")
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+const API_URL = "https://blackjack-backend-ilak.onrender.com";
+
 async function handleRegister() {
     const username = document.getElementById("username-input").value;
     const password = document.getElementById("password-input").value;
     const errorEl = document.getElementById("auth-error");
 
     try {
-        const response = await fetch('http://localhost:3000/api/auth/register', {
+        const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
