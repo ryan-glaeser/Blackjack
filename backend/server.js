@@ -10,9 +10,11 @@ app.use(express.json());
 
 let db;
 
+// ==========================================
 // DYNAMIC DATABASE SWITCH
+// ==========================================
 if (process.env.DATABASE_URL) {
-    // If running in the cloud (Render), connect to your live Postgres database
+    // Cloud Hosting (Render Postgres)
     const { Client } = require('pg');
     db = new Client({
         connectionString: process.env.DATABASE_URL,
@@ -21,17 +23,17 @@ if (process.env.DATABASE_URL) {
     db.connect();
     console.log("Connected to Cloud PostgreSQL Database.");
     
-    // Create Table using Postgres syntax
+    // REPLACED STEP 1: Added double quotes to enforce exact casing in Postgres
     db.query(`
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            wallet_balance FLOAT DEFAULT 500
+            "password_hash" TEXT NOT NULL,
+            "wallet_balance" FLOAT DEFAULT 500
         )
     `);
 } else {
-    // If running locally on your laptop, fall back to your reliable SQLite file
+    // Local Fallback (Laptop SQLite)
     const sqlite3 = require('sqlite3').verbose();
     db = new sqlite3.Database('./blackjack.db');
     console.log("Connected to Local SQLite database.");
@@ -64,12 +66,11 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
         if (process.env.DATABASE_URL) {
-            // Postgres logic
-            const sql = "INSERT INTO users (username, password_hash) VALUES ($1, $2)";
+            // REPLACED STEP 2: Enforced casing on registration insert
+            const sql = 'INSERT INTO users (username, "password_hash") VALUES ($1, $2)';
             await db.query(sql, [username, hashedPassword]);
             res.json({ message: "User registered successfully!" });
         } else {
-            // SQLite fallback fallback
             const sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
             db.run(sql, [username, hashedPassword], function(err) {
                 if (err) {
@@ -99,14 +100,10 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user;
         if (process.env.DATABASE_URL) {
-            // Postgres logic
-            const result = await db.query("SELECT * FROM users WHERE username = $1", [username]);
+            // REPLACED STEP 3: Precise row selection & explicit casing selection
+            const result = await db.query('SELECT id, username, "password_hash", "wallet_balance" FROM users WHERE username = $1', [username]);
             user = result.rows; 
-            
-            // This debug log will let you see exactly what properties exist on the object
-            console.log("Postgres user object returned:", user);
         } else {
-            // SQLite fallback
             user = await new Promise((resolve, reject) => {
                 db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
                     if (err) reject(err);
@@ -117,25 +114,44 @@ app.post('/api/auth/login', async (req, res) => {
 
         if (!user) return res.status(401).json({ error: "Invalid username or password." });
 
-        // Safe extraction: handles case sensitivity differences between database engines
-        const hash = user.password_hash || user.password_hash; 
-        
-        if (!hash) {
-            console.error("Password hash column missing or undefined in user object structure!");
-            return res.status(500).json({ error: "Database structure mismatch error." });
-        }
-
-        const isMatch = await bcrypt.compare(password, hash);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
         res.json({
             message: "Login successful!",
             userId: user.id,
             username: user.username,
-            wallet_balance: user.wallet_balance !== undefined ? user.wallet_balance : user.wallet_balance
+            wallet_balance: user.wallet_balance
         });
     } catch (error) {
-        console.error("Login route error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==========================================
+// GAME STATE ENDPOINTS
+// ==========================================
+
+// Fetch Balance
+app.get('/api/user/balance/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        let row;
+        if (process.env.DATABASE_URL) {
+            const result = await db.query('SELECT username, "wallet_balance" FROM users WHERE id = $1', [userId]);
+            row = result.rows;
+        } else {
+            row = await new Promise((resolve, reject) => {
+                db.get("SELECT username, wallet_balance FROM users WHERE id = ?", [userId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+        }
+
+        if (!row) return res.status(404).json({ error: "User not found." });
+        res.json(row);
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
@@ -149,7 +165,7 @@ app.post('/api/user/save-balance', async (req, res) => {
 
     try {
         if (process.env.DATABASE_URL) {
-            await db.query("UPDATE users SET wallet_balance = $1 WHERE id = $2", [newBalance, userId]);
+            await db.query('UPDATE users SET "wallet_balance" = $1 WHERE id = $2', [newBalance, userId]);
         } else {
             await new Promise((resolve, reject) => {
                 db.run("UPDATE users SET wallet_balance = ? WHERE id = ?", [newBalance, userId], function(err) {
