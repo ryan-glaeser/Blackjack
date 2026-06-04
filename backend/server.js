@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcryptjs'); // Library for hashing passwords
+const bcrypt = require('bcryptjs'); 
 
 const app = express();
 const PORT = process.env.PORT || 3000; 
@@ -14,26 +14,32 @@ let db;
 // DYNAMIC DATABASE SWITCH
 // ==========================================
 if (process.env.DATABASE_URL) {
-    // Cloud Hosting (Render Postgres)
     const { Client } = require('pg');
     db = new Client({
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false } // Required for cloud hosting security
+        ssl: { rejectUnauthorized: false } 
     });
     db.connect();
     console.log("Connected to Cloud PostgreSQL Database.");
     
-    // REPLACED STEP 1: Added double quotes to enforce exact casing in Postgres
-    db.query(`
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            "password_hash" TEXT NOT NULL,
-            "wallet_balance" FLOAT DEFAULT 500
-        )
-    `);
+    // TEMPORARY FORCE RESET: This guarantees the old structure is completely wiped out!
+    db.query('DROP TABLE IF EXISTS users;')
+      .then(() => {
+          console.log("Old users table forcefully dropped.");
+          // Now safely create the correct version
+          return db.query(`
+              CREATE TABLE users (
+                  id SERIAL PRIMARY KEY,
+                  username TEXT UNIQUE NOT NULL,
+                  "password_hash" TEXT NOT NULL,
+                  "wallet_balance" FLOAT DEFAULT 500
+              )
+          `);
+      })
+      .then(() => console.log("Fresh, correctly-cased users table created successfully."))
+      .catch(err => console.error("Database initialization error:", err));
+
 } else {
-    // Local Fallback (Laptop SQLite)
     const sqlite3 = require('sqlite3').verbose();
     db = new sqlite3.Database('./blackjack.db');
     console.log("Connected to Local SQLite database.");
@@ -54,7 +60,6 @@ if (process.env.DATABASE_URL) {
 // AUTHENTICATION ENDPOINTS
 // ==========================================
 
-// User Registration Route
 app.post('/api/auth/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -66,7 +71,6 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
         if (process.env.DATABASE_URL) {
-            // REPLACED STEP 2: Enforced casing on registration insert
             const sql = 'INSERT INTO users (username, "password_hash") VALUES ($1, $2)';
             await db.query(sql, [username, hashedPassword]);
             res.json({ message: "User registered successfully!" });
@@ -90,7 +94,6 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// User Login Route
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -100,7 +103,6 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         let user;
         if (process.env.DATABASE_URL) {
-            // REPLACED STEP 3: Precise row selection & explicit casing selection
             const result = await db.query('SELECT id, username, "password_hash", "wallet_balance" FROM users WHERE username = $1', [username]);
             user = result.rows; 
         } else {
@@ -112,7 +114,16 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        if (!user) return res.status(401).json({ error: "Invalid username or password." });
+        // DETAILED ERROR 1: The user account wasn't found in the database
+        if (!user) {
+            return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
+        }
+
+        // DETAILED ERROR 2: The password column itself missing
+        if (!user.password_hash) {
+            console.error("Fetched user data structure missing password_hash:", user);
+            return res.status(500).json({ error: "Server structural mismatch. Column password_hash missing." });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
@@ -132,7 +143,6 @@ app.post('/api/auth/login', async (req, res) => {
 // GAME STATE ENDPOINTS
 // ==========================================
 
-// Fetch Balance
 app.get('/api/user/balance/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
@@ -156,7 +166,6 @@ app.get('/api/user/balance/:userId', async (req, res) => {
     }
 });
 
-// Save Balance
 app.post('/api/user/save-balance', async (req, res) => {
     const { userId, newBalance } = req.body;
     if (userId === undefined || newBalance === undefined || typeof newBalance !== 'number') {
