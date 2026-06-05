@@ -72,15 +72,33 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        const user = result.rows; 
+        // --- THE ROW UNWRAPPER ---
+        // result.rows is an array containing the user object at index 0
+        const rowData = result.rows;
+        const user = Array.isArray(rowData) ? rowData : rowData;
 
-        // --- THE X-RAY PRINT ---
-        // This stops the code and sends the raw JSON architecture straight to your screen
-        const rawJsonStructure = JSON.stringify(user);
-        return res.status(500).json({ 
-            error: `RAW DATABASE OBJECT: ${rawJsonStructure}` 
+        if (!user) {
+            return res.status(401).json({ error: "Account data corrupt or empty." });
+        }
+
+        // Now standard string keys work perfectly!
+        const hash = user.password_hash;
+        const balance = user.wallet_balance;
+
+        if (!hash) {
+            return res.status(500).json({ error: "Internal error: Password hash missing from data object." });
+        }
+
+        // Pass the string hash directly to bcrypt
+        const isMatch = await bcrypt.compare(password, hash);
+        if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
+
+        res.json({
+            message: "Login successful!",
+            userId: user.id,
+            username: user.username,
+            wallet_balance: balance !== undefined && balance !== null ? Number(balance) : 500
         });
-
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
