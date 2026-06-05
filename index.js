@@ -278,7 +278,7 @@ async function draw() {
 
         } else if (newcard >= 10) {
             if (sum + 10 > 21 && aces > 0) {
-                sum += 1
+                sum -= 10
                 aces--
             }
             sum += 10
@@ -389,7 +389,7 @@ async function stand() {
                 }
             } else if (newcard >= 10) {
                 if (dealersum + 10 > 21 && dealeraces > 0) {
-                    dealersum += 1
+                    dealersum -= 10
                     dealeraces--
                 }
                 dealersum += 10
