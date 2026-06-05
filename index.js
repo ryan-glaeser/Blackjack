@@ -476,6 +476,7 @@ function replay() {
     isAlive = true
     hasWon = false
     aces = 0
+    dealeraces = 0
     firstdraw = true
     document.getElementById("replay-el").style.display = "none"
     dealerContainer.innerHTML = ""
