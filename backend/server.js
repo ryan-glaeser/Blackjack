@@ -97,6 +97,11 @@ app.post('/api/auth/login', async (req, res) => {
         let user;
         if (process.env.DATABASE_URL) {
             const result = await db.query('SELECT id, username, "password_hash", "wallet_balance" FROM users WHERE username = $1', [username]);
+            
+            // Check if rows array is completely empty first
+            if (!result.rows || result.rows.length === 0) {
+                return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
+            }
             user = result.rows; 
         } else {
             user = await new Promise((resolve, reject) => {
@@ -107,21 +112,19 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        if (!user) {
+        // Double check for undefined or empty object structures ({})
+        if (!user || Object.keys(user).length === 0) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // --- THE BULLETPROOF EXTRACTOR ---
-        // This checks every single variation of how Postgres/SQLite maps the object key
+        // Secure cross-platform extraction
         const actualHash = user.password_hash || user.password_hash || user['"password_hash"'];
         const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : (user.wallet_balance !== undefined ? user.wallet_balance : user['"wallet_balance"']);
 
         if (!actualHash) {
-            console.error("Available keys on the user object:", Object.keys(user));
-            return res.status(500).json({ error: `Structural mismatch. Keys found: ${Object.keys(user).join(', ')}` });
+            return res.status(500).json({ error: "Internal database structural mapping error." });
         }
 
-        // Use the extracted hash
         const isMatch = await bcrypt.compare(password, actualHash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
