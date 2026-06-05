@@ -115,24 +115,28 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // --- THE DIAGNOSTIC CHECK ---
-        const actualHash = user.password_hash || user.password_hash || user['"password_hash"'];
-        
-        // If it can't find the hash, look at the object keys and send them to the frontend
+        // --- THE NUMERIC INDEX FALLBACK ---
+        // If string keys aren't found, we pull directly from the numeric positions and
+        const actualHash = user.password_hash || user.password_hash || user['"password_hash"'] || user;
+        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : 
+                              (user.wallet_balance !== undefined ? user.wallet_balance : 
+                              (user['"wallet_balance"'] !== undefined ? user['"wallet_balance"'] : user));
+
         if (!actualHash) {
-            const objectKeys = Object.keys(user).join(', ');
-            return res.status(500).json({ error: `Casing Mismatch! The database returned these exact keys: [ ${objectKeys} ]` });
+            return res.status(500).json({ error: `Could not extract hash. Structure type: ${typeof user}` });
         }
 
         const isMatch = await bcrypt.compare(password, actualHash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
-        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : (user.wallet_balance !== undefined ? user.wallet_balance : user['"wallet_balance"']);
+        // Safely parse user ID from string property or array position 0
+        const actualId = user.id || user;
+        const actualUsername = user.username || user;
 
         res.json({
             message: "Login successful!",
-            userId: user.id,
-            username: user.username,
+            userId: actualId,
+            username: actualUsername,
             wallet_balance: actualBalance !== undefined ? actualBalance : 500
         });
     } catch (error) {
