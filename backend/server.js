@@ -72,16 +72,19 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // --- THE ROW UNWRAPPER ---
-        // result.rows is an array containing the user object at index 0
-        const rowData = result.rows;
-        const user = Array.isArray(rowData) ? rowData : rowData;
-
-        if (!user) {
-            return res.status(401).json({ error: "Account data corrupt or empty." });
+        // --- THE INFINITE NESTED ARRAY BUSTER ---
+        // Recursively unpack layers until we are holding the raw database object
+        let user = result.rows;
+        while (Array.isArray(user)) {
+            user = user;
         }
 
-        // Now standard string keys work perfectly!
+        // Final check to verify we found the target object structure
+        if (!user || typeof user !== 'object') {
+            return res.status(401).json({ error: "Account data layout could not be parsed." });
+        }
+
+        // Now standard string keys are fully exposed and directly accessible!
         const hash = user.password_hash;
         const balance = user.wallet_balance;
 
