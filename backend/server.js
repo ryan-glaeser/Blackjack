@@ -72,16 +72,25 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        const user = result.rows; 
+        let user = result.rows; 
 
-        // --- SAFE INDEX & STRING EXTRACTION ---
-        // Since the row is arriving as an array-like structure, we pull directly from index 2
-        let hash = user.password_hash || user;
+        // --- THE NESTED ARRAY UNWRAPPER ---
+        // If the driver nested an array inside an array, dig down to the true data object
+        if (Array.isArray(user)) {
+            user = user;
+        }
+
+        if (!user || Object.keys(user).length === 0) {
+            return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
+        }
+
+        // Extract using standard keys or fallback array indices depending on the unwrapped object type
+        let hash = user.password_hash || user['password_hash'] || user;
         let balance = user.wallet_balance !== undefined ? user.wallet_balance : user;
         let userId = user.id || user;
         let responseUsername = user.username || user;
 
-        // Ensure the hash is treated purely as a clean string
+        // Ensure hash is a clean string format for bcrypt
         if (hash && typeof hash === 'object') {
             hash = Array.isArray(hash) ? String(hash) : String(hash);
         } else {
@@ -89,7 +98,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (!hash || hash === "undefined" || hash === "[object Object]") {
-            return res.status(500).json({ error: user });
+            return res.status(500).json({ error: "Could not extract password hash from row structure." });
         }
 
         // Pass the clean string hash to bcrypt
