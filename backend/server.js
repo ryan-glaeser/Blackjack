@@ -87,9 +87,9 @@ app.post('/api/auth/login', async (req, res) => {
         } else {
             hash = String(hash);
         }
-        console.log(user);
+
         if (!hash || hash === "undefined" || hash === "[object Object]") {
-            return res.status(500).json({ error: "Could not extract password hash from row structure." });
+            return res.status(500).json({ error: user });
         }
 
         // Pass the clean string hash to bcrypt
