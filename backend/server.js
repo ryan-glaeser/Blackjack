@@ -98,7 +98,6 @@ app.post('/api/auth/login', async (req, res) => {
         if (process.env.DATABASE_URL) {
             const result = await db.query('SELECT id, username, "password_hash", "wallet_balance" FROM users WHERE username = $1', [username]);
             
-            // Check if rows array is completely empty first
             if (!result.rows || result.rows.length === 0) {
                 return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
             }
@@ -112,21 +111,23 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
 
-        // Double check for undefined or empty object structures ({})
         if (!user || Object.keys(user).length === 0) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // Secure cross-platform extraction
+        // --- THE DIAGNOSTIC CHECK ---
         const actualHash = user.password_hash || user.password_hash || user['"password_hash"'];
-        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : (user.wallet_balance !== undefined ? user.wallet_balance : user['"wallet_balance"']);
-
+        
+        // If it can't find the hash, look at the object keys and send them to the frontend
         if (!actualHash) {
-            return res.status(500).json({ error: "Internal database structural mapping error." });
+            const objectKeys = Object.keys(user).join(', ');
+            return res.status(500).json({ error: `Casing Mismatch! The database returned these exact keys: [ ${objectKeys} ]` });
         }
 
         const isMatch = await bcrypt.compare(password, actualHash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
+
+        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : (user.wallet_balance !== undefined ? user.wallet_balance : user['"wallet_balance"']);
 
         res.json({
             message: "Login successful!",
