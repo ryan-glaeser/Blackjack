@@ -115,29 +115,45 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // --- THE NUMERIC INDEX FALLBACK ---
-        // If string keys aren't found, we pull directly from the numeric positions and
-        const actualHash = user.password_hash || user.password_hash || user['"password_hash"'] || user;
-        const actualBalance = user.wallet_balance !== undefined ? user.wallet_balance : 
-                              (user.wallet_balance !== undefined ? user.wallet_balance : 
-                              (user['"wallet_balance"'] !== undefined ? user['"wallet_balance"'] : user));
+        // 1. Extract raw values from string keys or numeric indices
+        let rawHash = user.password_hash || user.password_hash || user['"password_hash"'] || user;
+        let rawBalance = user.wallet_balance !== undefined ? user.wallet_balance : 
+                         (user.wallet_balance !== undefined ? user.wallet_balance : 
+                         (user['"wallet_balance"'] !== undefined ? user['"wallet_balance"'] : user));
 
-        if (!actualHash) {
-            return res.status(500).json({ error: `Could not extract hash. Structure type: ${typeof user}` });
+        // 2. BULLETPROOF STRING CONVERSION
+        // If the hash came back wrapped in an object or array, extract the text string safely
+        let actualHash = "";
+        if (rawHash && typeof rawHash === 'object') {
+            // If it's an array, grab the first element; otherwise try common nested keys or stringify
+            actualHash = Array.isArray(rawHash) ? rawHash : (rawHash.password_hash || rawHash.text || JSON.stringify(rawHash));
+        } else {
+            actualHash = String(rawHash);
         }
 
+        if (!actualHash || actualHash === "undefined" || actualHash === "[object Object]") {
+            return res.status(500).json({ error: "Could not normalize hash to a valid string." });
+        }
+
+        // Pass the guaranteed clean string to bcrypt
         const isMatch = await bcrypt.compare(password, actualHash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
 
-        // Safely parse user ID from string property or array position 0
         const actualId = user.id || user;
         const actualUsername = user.username || user;
+        
+        let actualBalance = 500;
+        if (rawBalance && typeof rawBalance === 'object') {
+            actualBalance = Number(Array.isArray(rawBalance) ? rawBalance : (rawBalance.wallet_balance || 500));
+        } else if (rawBalance !== undefined) {
+            actualBalance = Number(rawBalance);
+        }
 
         res.json({
             message: "Login successful!",
             userId: actualId,
             username: actualUsername,
-            wallet_balance: actualBalance !== undefined ? actualBalance : 500
+            wallet_balance: actualBalance
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
