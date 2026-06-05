@@ -66,27 +66,19 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
+        // This is the clean query that keeps registration happy
         const result = await db.query('SELECT id, username, password_hash, wallet_balance FROM users WHERE username = $1', [username]);
         
         if (!result.rows || result.rows.length === 0) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // --- THE INFINITE NESTED ARRAY BUSTER ---
-        // Recursively unpack layers until we are holding the raw database object
-        let user = result.rows;
-        while (Array.isArray(user)) {
-            user = user;
-        }
+        // Reverting back to the exact object extraction that worked before
+        const user = result.rows; 
 
-        // Final check to verify we found the target object structure
-        if (!user || typeof user !== 'object') {
-            return res.status(401).json({ error: "Account data layout could not be parsed." });
-        }
-
-        // Now standard string keys are fully exposed and directly accessible!
-        const hash = user.password_hash;
-        const balance = user.wallet_balance;
+        // Direct bracket notation extraction to bypass any strict dot-notation engine quirks
+        const hash = user["password_hash"] || user.password_hash;
+        const balance = user["wallet_balance"] !== undefined ? user["wallet_balance"] : user.wallet_balance;
 
         if (!hash) {
             return res.status(500).json({ error: "Internal error: Password hash missing from data object." });
@@ -98,8 +90,8 @@ app.post('/api/auth/login', async (req, res) => {
 
         res.json({
             message: "Login successful!",
-            userId: user.id,
-            username: user.username,
+            userId: user.id || user["id"],
+            username: user.username || user["username"],
             wallet_balance: balance !== undefined && balance !== null ? Number(balance) : 500
         });
     } catch (error) {
