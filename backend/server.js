@@ -74,7 +74,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // Reverting back to the exact object extraction that worked before
-        const user = result.rows; 
+        const user = result[0] || result.rows[0];
 
         // Direct bracket notation extraction to bypass any strict dot-notation engine quirks
         const hash = user["password_hash"] || user.password_hash;
