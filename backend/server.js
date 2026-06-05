@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs'); 
+const { Client } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000; 
@@ -8,51 +9,33 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-let db;
-
 // ==========================================
-// DYNAMIC DATABASE SWITCH
+// POSTGRESQL DATABASE CONNECTION
 // ==========================================
-if (process.env.DATABASE_URL) {
-    const { Client } = require('pg');
-    db = new Client({
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false } 
-    });
-    db.connect();
-    console.log("Connected to Cloud PostgreSQL Database.");
-    
-    // Stable configuration: safeguards existing data while maintaining explicit casing
-    db.query(`
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            "password_hash" TEXT NOT NULL,
-            "wallet_balance" FLOAT DEFAULT 500
-        )
-    `).catch(err => console.error("Database initialization error:", err));
+const db = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Required for cloud hosting security
+});
 
-} else {
-    const sqlite3 = require('sqlite3').verbose();
-    db = new sqlite3.Database('./blackjack.db');
-    console.log("Connected to Local SQLite database.");
-    
-    db.serialize(() => {
-        db.run(`
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                wallet_balance FLOAT DEFAULT 500
-            )
-        `);
-    });
-}
+db.connect()
+    .then(() => console.log("Connected to PostgreSQL Database."))
+    .catch(err => console.error("Database connection error:", err));
+
+// Standard Lowercase Table Initialization
+db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        wallet_balance FLOAT DEFAULT 500
+    )
+`).catch(err => console.error("Table initialization error:", err));
 
 // ==========================================
 // AUTHENTICATION ENDPOINTS
 // ==========================================
 
+// User Registration
 app.post('/api/auth/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -63,30 +46,19 @@ app.post('/api/auth/register', async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        if (process.env.DATABASE_URL) {
-            const sql = 'INSERT INTO users (username, "password_hash") VALUES ($1, $2)';
-            await db.query(sql, [username, hashedPassword]);
-            res.json({ message: "User registered successfully!" });
-        } else {
-            const sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
-            db.run(sql, [username, hashedPassword], function(err) {
-                if (err) {
-                    if (err.message.includes("UNIQUE constraint failed")) {
-                        return res.status(400).json({ error: "Username is already taken." });
-                    }
-                    return res.status(500).json({ error: err.message });
-                }
-                res.json({ message: "User registered successfully!" });
-            });
-        }
+        const sql = 'INSERT INTO users (username, password_hash) VALUES ($1, $2)';
+        await db.query(sql, [username, hashedPassword]);
+        
+        res.json({ message: "User registered successfully!" });
     } catch (error) {
-        if (error.message && (error.message.includes("unique constraint") || error.message.includes("UNIQUE constraint"))) {
+        if (error.message && error.message.includes("unique constraint")) {
             return res.status(400).json({ error: "Username is already taken." });
         }
         res.status(500).json({ error: "Server error during registration." });
     }
 });
 
+// User Login
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -94,66 +66,27 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        let user;
-        if (process.env.DATABASE_URL) {
-            const result = await db.query('SELECT id, username, "password_hash", "wallet_balance" FROM users WHERE username = $1', [username]);
-            
-            if (!result.rows || result.rows.length === 0) {
-                return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
-            }
-            user = result.rows; 
-        } else {
-            user = await new Promise((resolve, reject) => {
-                db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
-        }
-
-        if (!user || Object.keys(user).length === 0) {
+        const result = await db.query('SELECT id, username, password_hash, wallet_balance FROM users WHERE username = $1', [username]);
+        
+        if (!result.rows || result.rows.length === 0) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // 1. Extract raw values from string keys or numeric indices
-        let rawHash = user.password_hash || user.password_hash || user['"password_hash"'] || user;
-        let rawBalance = user.wallet_balance !== undefined ? user.wallet_balance : 
-                         (user.wallet_balance !== undefined ? user.wallet_balance : 
-                         (user['"wallet_balance"'] !== undefined ? user['"wallet_balance"'] : user));
+        const user = result.rows; 
 
-        // 2. BULLETPROOF STRING CONVERSION
-        // If the hash came back wrapped in an object or array, extract the text string safely
-        let actualHash = "";
-        if (rawHash && typeof rawHash === 'object') {
-            // If it's an array, grab the first element; otherwise try common nested keys or stringify
-            actualHash = Array.isArray(rawHash) ? rawHash : (rawHash.password_hash || rawHash.text || JSON.stringify(rawHash));
-        } else {
-            actualHash = String(rawHash);
+        // Clean, standard property verification
+        if (!user.password_hash || typeof user.password_hash !== 'string') {
+            return res.status(500).json({ error: "Database mapping error: Invalid password hash type." });
         }
 
-        if (!actualHash || actualHash === "undefined" || actualHash === "[object Object]") {
-            return res.status(500).json({ error: "Could not normalize hash to a valid string." });
-        }
-
-        // Pass the guaranteed clean string to bcrypt
-        const isMatch = await bcrypt.compare(password, actualHash);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
-
-        const actualId = user.id || user;
-        const actualUsername = user.username || user;
-        
-        let actualBalance = 500;
-        if (rawBalance && typeof rawBalance === 'object') {
-            actualBalance = Number(Array.isArray(rawBalance) ? rawBalance : (rawBalance.wallet_balance || 500));
-        } else if (rawBalance !== undefined) {
-            actualBalance = Number(rawBalance);
-        }
 
         res.json({
             message: "Login successful!",
-            userId: actualId,
-            username: actualUsername,
-            wallet_balance: actualBalance
+            userId: user.id,
+            username: user.username,
+            wallet_balance: user.wallet_balance !== null ? Number(user.wallet_balance) : 500
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -164,21 +97,12 @@ app.post('/api/auth/login', async (req, res) => {
 // GAME STATE ENDPOINTS
 // ==========================================
 
+// Fetch Balance
 app.get('/api/user/balance/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
-        let row;
-        if (process.env.DATABASE_URL) {
-            const result = await db.query('SELECT username, "wallet_balance" FROM users WHERE id = $1', [userId]);
-            row = result.rows;
-        } else {
-            row = await new Promise((resolve, reject) => {
-                db.get("SELECT username, wallet_balance FROM users WHERE id = ?", [userId], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
-        }
+        const result = await db.query('SELECT username, wallet_balance FROM users WHERE id = $1', [userId]);
+        const row = result.rows;
 
         if (!row) return res.status(404).json({ error: "User not found." });
         res.json(row);
@@ -187,6 +111,7 @@ app.get('/api/user/balance/:userId', async (req, res) => {
     }
 });
 
+// Save Balance
 app.post('/api/user/save-balance', async (req, res) => {
     const { userId, newBalance } = req.body;
     if (userId === undefined || newBalance === undefined || typeof newBalance !== 'number') {
@@ -194,16 +119,7 @@ app.post('/api/user/save-balance', async (req, res) => {
     }
 
     try {
-        if (process.env.DATABASE_URL) {
-            await db.query('UPDATE users SET "wallet_balance" = $1 WHERE id = $2', [newBalance, userId]);
-        } else {
-            await new Promise((resolve, reject) => {
-                db.run("UPDATE users SET wallet_balance = ? WHERE id = ?", [newBalance, userId], function(err) {
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-        }
+        await db.query('UPDATE users SET wallet_balance = $1 WHERE id = $2', [newBalance, userId]);
         res.json({ message: "Balance updated successfully!", updatedTo: newBalance });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -211,5 +127,5 @@ app.post('/api/user/save-balance', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Secure Blackjack backend running on port ${PORT}`);
+    console.log(`Secure Blackjack Postgres-only backend running on port ${PORT}`);
 });
