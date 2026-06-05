@@ -74,13 +74,34 @@ app.post('/api/auth/login', async (req, res) => {
 
         const user = result.rows; 
 
-        // --- DIAGNOSTIC KEY INSPECTOR ---
-        // This stops execution and sends the exact object keys back to your browser screen
-        const discoveredKeys = Object.keys(user);
-        return res.status(500).json({ 
-            error: `JavaScript Keys Found: [ ${discoveredKeys.join(', ')} ]. Type of user: ${typeof user}` 
-        });
+        // --- SAFE INDEX & STRING EXTRACTION ---
+        // Since the row is arriving as an array-like structure, we pull directly from index 2
+        let hash = user.password_hash || user;
+        let balance = user.wallet_balance !== undefined ? user.wallet_balance : user;
+        let userId = user.id || user;
+        let responseUsername = user.username || user;
 
+        // Ensure the hash is treated purely as a clean string
+        if (hash && typeof hash === 'object') {
+            hash = Array.isArray(hash) ? String(hash) : String(hash);
+        } else {
+            hash = String(hash);
+        }
+
+        if (!hash || hash === "undefined" || hash === "[object Object]") {
+            return res.status(500).json({ error: "Could not extract password hash from row structure." });
+        }
+
+        // Pass the clean string hash to bcrypt
+        const isMatch = await bcrypt.compare(password, hash);
+        if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
+
+        res.json({
+            message: "Login successful!",
+            userId: userId,
+            username: responseUsername,
+            wallet_balance: balance !== undefined && balance !== null ? Number(balance) : 500
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
