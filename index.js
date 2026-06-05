@@ -157,7 +157,6 @@ async function draw() {
 
     // Initial deal
     if (firstdraw) {
-
         // Update UI and subtract bet amount from player's money for the current game
         document.getElementById("replay-el").style.display = "none"
         document.getElementById("bet-input").style.display = "none"
@@ -224,11 +223,11 @@ async function draw() {
         newcard = Math.floor(Math.random() * (13)) + 1
         newcardNum = cardDict[newcard]
         if (newcard === 1) {
-            aces++
             if (sum + 11 > 21) {
                 sum += 1
             } else {
                 sum += 11
+                aces++
             }
         } else if (newcard >= 10) {
             if (sum + 10 > 21 && aces > 0) {
@@ -265,24 +264,25 @@ async function draw() {
         if (sum === 21) {
             hasBlackjack = true
         }
-        } else {
 
-        // Subsequent draws after the initial deal
+        } else { // Subsequent draws after the initial deal
         newcard = Math.floor(Math.random() * (13)) + 1
         newcardNum = cardDict[newcard]
         if (newcard === 1) {
-            aces++
             if (sum + 11 > 21) {
                 sum += 1
             } else {
                 sum += 11
+                aces++
             }
+
         } else if (newcard >= 10) {
             if (sum + 10 > 21 && aces > 0) {
                 sum += 1
                 aces--
             }
             sum += 10
+
         } else {
             if (sum + newcard > 21 && aces > 0) {
                 sum -= 10
@@ -307,6 +307,7 @@ async function draw() {
     // Check if player has won, lost, or can continue drawing
     if (sum <= 21) {
         document.getElementById("response-el").textContent = "Draw another one?"
+
     } else {
         document.getElementById("response-el").textContent = "Bust!!"
         isAlive = false
@@ -326,17 +327,16 @@ async function draw() {
  * and the appropriate message will be displayed.
  */
 async function stand() {
-
     // Check if player has already won or lost before allowing them to stand
     if (hasWon) {
         document.getElementById("response-el").textContent = "You've already won, you can't stand!"
         exit()
     }
+
     if (sum > 21 || !isAlive) {
         document.getElementById("response-el").textContent = "You've already lost, you can't stand."
-    } else {
 
-        //Reveal dealer's hidden card and update dealer's sum
+    } else { //Reveal dealer's hidden card and update dealer's sum
         if (dealerHiddenCard != 0) {
             const hiddenImg = document.getElementById("hidden-card-img")
             if (hiddenImg) {
@@ -345,17 +345,18 @@ async function stand() {
                 hiddenImg.src = "images/" + cardImages[cardIndex]
             }
             if (dealerHiddenCard === 1) {
-                dealeraces++
                 if (dealersum + 11 > 21) {
                     dealersum += 1
                 } else {
                     dealersum += 11
+                    dealeraces++
                 }
             } else if (dealerHiddenCard >= 10) {
                 dealersum += 10
             } else {
                 dealersum += dealerHiddenCard
             }
+
             document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
             dealerHiddenCard = 0
         }
@@ -399,11 +400,11 @@ async function stand() {
                 }
                 dealersum += newcard
             }
+
             document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
         }
-        if (dealersum > 21) {
-            // Dealer busts, player wins
 
+        if (dealersum > 21) { // Dealer busts, player wins
             if (hasBlackjack) {
                 document.getElementById("response-el").textContent = "Dealer busts and you have Blackjack! You win!!!"
             } else {
@@ -418,21 +419,18 @@ async function stand() {
                 money = Number(Number(money) + (betAmount * 2))
             }
             savePlayerBalance(money)
-        } else if (dealersum === sum) {
-            // Push
 
+        } else if (dealersum === sum) { // Push
             document.getElementById("response-el").textContent = "Push!"
             hasWon = true
             money = Number(Number(money) + betAmount)
             savePlayerBalance(money)
-        } else if (dealersum > sum) {
-            // Dealer wins
 
+        } else if (dealersum > sum) { // Dealer wins
             document.getElementById("response-el").textContent = "Dealer wins."
             isAlive = false
-        } else {
-            // Player wins. If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
 
+        } else { // Player wins. If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
             hasWon = true
             if (hasBlackjack) {
                 money = Number(Number(money) + (betAmount * 2.5))
@@ -443,6 +441,7 @@ async function stand() {
         }
         document.getElementById("dealersum-el").textContent = "Dealer's Sum: " + dealersum
     }
+
     if (money > 0) {
         document.getElementById("replay-el").style.display = "block"
     }
@@ -453,6 +452,7 @@ async function stand() {
         document.getElementById("reload-el").style.display = "block"
         //document.getElementById("replay-el").style.display = "none"
     }
+
     document.getElementById("bet-input").style.display = "block"
     document.getElementById("bet-el").style.display = "block"
 }
@@ -461,9 +461,7 @@ async function stand() {
  * but keep the money and bet amount the same
  */
 function replay() {
-    
     //Check if player has enough money to play again or can bet the chosen amount
-    
     if (betAmount > money) {
         document.getElementById("response-el").textContent = "You don't have enough money to make that bet!"
         exit()
