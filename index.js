@@ -148,11 +148,11 @@ async function draw() {
     document.getElementById("stand-el").style.display = "block"
     if (!isAlive) {
         document.getElementById("response-el").textContent = "You've already lost, you can't draw more cards."
-        return;
+        exit()
     }
     if (hasWon) {
         document.getElementById("response-el").textContent = "You've already won, you can't draw more cards!"
-        return;
+        exit()
     }
 
     // Initial deal
@@ -178,6 +178,8 @@ async function draw() {
 
         // Display the dealer's first card as an image instead of text
         const dealerCard1 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
         let randomSuit = Math.floor(Math.random() * 4) + 1
         let cardIndex = newcard + (randomSuit - 1) * 13
         dealerCard1.src = "images/" + cardImages[cardIndex]
@@ -212,6 +214,8 @@ async function draw() {
 
         // Display the player's first card as an image instead of text
         const playerCard1 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
         let randomSuit = Math.floor(Math.random() * 4) + 1
         let cardIndex = newcard + (randomSuit - 1) * 13
         playerCard1.src = "images/" + cardImages[cardIndex]
@@ -245,6 +249,8 @@ async function draw() {
 
         //Display the player's second card as an image instead of text
         const playerCard2 = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
         let randomSuit = Math.floor(Math.random() * 4) + 1
         let cardIndex = newcard + (randomSuit - 1) * 13
         playerCard2.src = "images/" + cardImages[cardIndex]
@@ -288,6 +294,8 @@ async function draw() {
 
         // Display the newly drawn card as an image instead of text
         const nextCardImg = document.createElement("img")
+        randomSuit = Math.floor(Math.random() * 4) + 1
+        cardIndex = newcard + (randomSuit - 1) * 13
         let randomSuit = Math.floor(Math.random() * 4) + 1
         let cardIndex = newcard + (randomSuit - 1) * 13
         nextCardImg.src = "images/" + cardImages[cardIndex]
@@ -325,12 +333,12 @@ async function stand() {
     // Check if player has already won or lost before allowing them to stand
     if (hasWon) {
         document.getElementById("response-el").textContent = "You've already won, you can't stand!"
-        return;
+        exit()
     }
 
     if (sum > 21 || !isAlive) {
         document.getElementById("response-el").textContent = "You've already lost, you can't stand."
-        return;
+
     } else { //Reveal dealer's hidden card and update dealer's sum
         // Prevent further interaction while dealer plays
         document.getElementById("draw-el").style.display = "none"
@@ -340,6 +348,8 @@ async function stand() {
         if (dealerHiddenCard != 0) {
             const hiddenImg = document.getElementById("hidden-card-img")
             if (hiddenImg) {
+                randomSuit = Math.floor(Math.random() * 4) + 1
+                cardIndex = dealerHiddenCard + (randomSuit - 1) * 13
                 let randomSuit = Math.floor(Math.random() * 4) + 1
                 let cardIndex = dealerHiddenCard + (randomSuit - 1) * 13
                 hiddenImg.src = "images/" + cardImages[cardIndex]
@@ -372,6 +382,8 @@ async function stand() {
             newcardNum = cardDict[newcard]
             
             const nextCardImg = document.createElement("img")
+            randomSuit = Math.floor(Math.random() * 4) + 1
+            cardIndex = newcard + (randomSuit - 1) * 13
             let randomSuit = Math.floor(Math.random() * 4) + 1
             let cardIndex = newcard + (randomSuit - 1) * 13
             nextCardImg.src = "images/" + cardImages[cardIndex]
