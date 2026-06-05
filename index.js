@@ -101,7 +101,7 @@ async function handleLogin() {
         
         // Render user specific money
         document.getElementById("money").textContent = "Money: $" + money;
-        document.getElementById("response-el").textContent = `Welcome back, ${data.username}! Draw another card?`;
+        document.getElementById("response-el").textContent = `Welcome back, ${data.username}! Play a hand?`;
 
     } catch (err) {
         errorEl.textContent = "Cannot connect to server.";
@@ -148,11 +148,11 @@ async function draw() {
     document.getElementById("stand-el").style.display = "block"
     if (!isAlive) {
         document.getElementById("response-el").textContent = "You've already lost, you can't draw more cards."
-        exit()
+        return;
     }
     if (hasWon) {
         document.getElementById("response-el").textContent = "You've already won, you can't draw more cards!"
-        exit()
+        return;
     }
 
     // Initial deal
@@ -178,8 +178,8 @@ async function draw() {
 
         // Display the dealer's first card as an image instead of text
         const dealerCard1 = document.createElement("img")
-        randomSuit = Math.floor(Math.random() * 4) + 1
-        cardIndex = newcard + (randomSuit - 1) * 13
+        let randomSuit = Math.floor(Math.random() * 4) + 1
+        let cardIndex = newcard + (randomSuit - 1) * 13
         dealerCard1.src = "images/" + cardImages[cardIndex]
         dealerCard1.style.width = "80px"
         dealerCard1.style.height = "120px"
@@ -212,8 +212,8 @@ async function draw() {
 
         // Display the player's first card as an image instead of text
         const playerCard1 = document.createElement("img")
-        randomSuit = Math.floor(Math.random() * 4) + 1
-        cardIndex = newcard + (randomSuit - 1) * 13
+        let randomSuit = Math.floor(Math.random() * 4) + 1
+        let cardIndex = newcard + (randomSuit - 1) * 13
         playerCard1.src = "images/" + cardImages[cardIndex]
         playerCard1.style.width = "80px"
         playerCard1.style.height = "120px"
@@ -245,20 +245,15 @@ async function draw() {
 
         //Display the player's second card as an image instead of text
         const playerCard2 = document.createElement("img")
-        randomSuit = Math.floor(Math.random() * 4) + 1
-        cardIndex = newcard + (randomSuit - 1) * 13
+        let randomSuit = Math.floor(Math.random() * 4) + 1
+        let cardIndex = newcard + (randomSuit - 1) * 13
         playerCard2.src = "images/" + cardImages[cardIndex]
         playerCard2.style.width = "80px"
         playerCard2.style.height = "120px"
         playerCard2.style.objectFit = "cover"
         playerContainer.appendChild(playerCard2)
 
-        // Handle case where player is dealt two aces initially
         firstdraw = false
-        if (sum === 22) {
-            sum -= 10
-            aces--
-        }
 
         // Check for blackjack and set flag for 3:2 payout on win
         if (sum === 21) {
@@ -293,8 +288,8 @@ async function draw() {
 
         // Display the newly drawn card as an image instead of text
         const nextCardImg = document.createElement("img")
-        randomSuit = Math.floor(Math.random() * 4) + 1
-        cardIndex = newcard + (randomSuit - 1) * 13
+        let randomSuit = Math.floor(Math.random() * 4) + 1
+        let cardIndex = newcard + (randomSuit - 1) * 13
         nextCardImg.src = "images/" + cardImages[cardIndex]
         nextCardImg.style.width = "80px"
         nextCardImg.style.height = "120px"
@@ -330,18 +325,23 @@ async function stand() {
     // Check if player has already won or lost before allowing them to stand
     if (hasWon) {
         document.getElementById("response-el").textContent = "You've already won, you can't stand!"
-        exit()
+        return;
     }
 
     if (sum > 21 || !isAlive) {
         document.getElementById("response-el").textContent = "You've already lost, you can't stand."
-
+        return;
     } else { //Reveal dealer's hidden card and update dealer's sum
+        // Prevent further interaction while dealer plays
+        document.getElementById("draw-el").style.display = "none"
+        document.getElementById("stand-el").style.display = "none"
+        document.getElementById("response-el").textContent = "Dealer's turn..."
+
         if (dealerHiddenCard != 0) {
             const hiddenImg = document.getElementById("hidden-card-img")
             if (hiddenImg) {
-                randomSuit = Math.floor(Math.random() * 4) + 1
-                cardIndex = dealerHiddenCard + (randomSuit - 1) * 13
+                let randomSuit = Math.floor(Math.random() * 4) + 1
+                let cardIndex = dealerHiddenCard + (randomSuit - 1) * 13
                 hiddenImg.src = "images/" + cardImages[cardIndex]
             }
             if (dealerHiddenCard === 1) {
@@ -372,8 +372,8 @@ async function stand() {
             newcardNum = cardDict[newcard]
             
             const nextCardImg = document.createElement("img")
-            randomSuit = Math.floor(Math.random() * 4) + 1
-            cardIndex = newcard + (randomSuit - 1) * 13
+            let randomSuit = Math.floor(Math.random() * 4) + 1
+            let cardIndex = newcard + (randomSuit - 1) * 13
             nextCardImg.src = "images/" + cardImages[cardIndex]
             nextCardImg.style.width = "80px"
             nextCardImg.style.height = "120px"
@@ -432,6 +432,11 @@ async function stand() {
 
         } else { // Player wins. If player has blackjack, they get paid 3:2, otherwise they get paid 2:1
             hasWon = true
+            if (hasBlackjack) {
+                document.getElementById("response-el").textContent = "Blackjack! You win!!!"
+            } else {
+                document.getElementById("response-el").textContent = "You win!!"
+            }
             if (hasBlackjack) {
                 money = Number(Number(money) + (betAmount * 2.5))
             } else {
