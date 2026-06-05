@@ -463,10 +463,7 @@ async function stand() {
 function replay() {
     
     //Check if player has enough money to play again or can bet the chosen amount
-    //if (money <= 0) {
-    //    document.getElementById("response-el").textContent = "You don't have any more money to play!"
-    //    exit()
-    //}
+    
     if (betAmount > money) {
         document.getElementById("response-el").textContent = "You don't have enough money to make that bet!"
         exit()
@@ -515,6 +512,7 @@ function bet() {
  */
 function reload() {
     savePlayerBalance(500)
+    money = 500
     document.getElementById("response-el").textContent = "Well, you've given up. Try again!"
     document.getElementById("reload-el").style.display = "none"
     document.getElementById("stand-el").style.display = "none"

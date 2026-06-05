@@ -66,17 +66,15 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        // This is the clean query that keeps registration happy
         const result = await db.query('SELECT id, username, password_hash, wallet_balance FROM users WHERE username = $1', [username]);
         
         if (!result.rows || result.rows.length === 0) {
             return res.status(401).json({ error: "Account not found. Please register this username fresh!" });
         }
 
-        // Reverting back to the exact object extraction that worked before
+        // Extract the user data, no matter if it was returned as an array or an object
         const user = result[0] || result.rows[0];
 
-        // Direct bracket notation extraction to bypass any strict dot-notation engine quirks
         const hash = user["password_hash"] || user.password_hash;
         const balance = user["wallet_balance"] !== undefined ? user["wallet_balance"] : user.wallet_balance;
 
