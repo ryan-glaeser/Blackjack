@@ -332,6 +332,11 @@ async function stand() {
         document.getElementById("response-el").textContent = "You've already lost, you can't stand."
 
     } else { //Reveal dealer's hidden card and update dealer's sum
+        // Prevent further interaction while dealer plays
+        document.getElementById("draw-el").style.display = "none"
+        document.getElementById("stand-el").style.display = "none"
+        document.getElementById("response-el").textContent = "Dealer's turn..."
+        
         if (dealerHiddenCard != 0) {
             const hiddenImg = document.getElementById("hidden-card-img")
             if (hiddenImg) {
@@ -429,8 +434,10 @@ async function stand() {
             hasWon = true
             if (hasBlackjack) {
                 money = Number(Number(money) + (betAmount * 2.5))
+                document.getElementById("response-el").textContent = "You have Blackjack! You win!!!"
             } else {
                 money = Number(Number(money) + (betAmount * 2))
+                document.getElementById("response-el").textContent = "You win!!"
             }
             savePlayerBalance(money)
         }
@@ -475,6 +482,7 @@ function replay() {
     dealerContainer.innerHTML = ""
     playerContainer.innerHTML = ""
     document.getElementById("draw-el").style.display = "block"
+    document.getElementById("stand-el").style.display = "block"
     document.getElementById("response-el").textContent = "Draw another card?"
     draw()
 }
