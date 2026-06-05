@@ -74,43 +74,13 @@ app.post('/api/auth/login', async (req, res) => {
 
         const user = result.rows; 
 
-        // --- SAFE STRING EXTRACTOR ---
-        let cleanHash = "";
-        
-        if (user.password_hash && typeof user.password_hash === 'object') {
-            // If the driver wrapped it in an array, take the first index.
-            if (Array.isArray(user.password_hash)) {
-                cleanHash = String(user.password_hash);
-            } else {
-                // If it's an object, check for common keys or stringify/extract
-                cleanHash = user.password_hash.text || user.password_hash.password_hash || String(user.password_hash);
-            }
-        } else {
-            // If it's already a string
-            cleanHash = String(user.password_hash);
-        }
-
-        // Final safety fallback check
-        if (!cleanHash || cleanHash === "undefined" || cleanHash === "[object Object]") {
-            return res.status(500).json({ error: `Failed to parse hash string from type: ${typeof user.password_hash}` });
-        }
-
-        // Pass the verified string hash to bcrypt
-        const isMatch = await bcrypt.compare(password, cleanHash);
-        if (!isMatch) return res.status(401).json({ error: "Invalid username or password." });
-
-        // Safely extract wallet balance using the same logic
-        let cleanBalance = 500;
-        if (user.wallet_balance !== undefined && user.wallet_balance !== null) {
-            cleanBalance = Array.isArray(user.wallet_balance) ? Number(user.wallet_balance) : Number(user.wallet_balance);
-        }
-
-        res.json({
-            message: "Login successful!",
-            userId: Array.isArray(user.id) ? user.id : user.id,
-            username: Array.isArray(user.username) ? user.username : user.username,
-            wallet_balance: cleanBalance
+        // --- DIAGNOSTIC KEY INSPECTOR ---
+        // This stops execution and sends the exact object keys back to your browser screen
+        const discoveredKeys = Object.keys(user);
+        return res.status(500).json({ 
+            error: `JavaScript Keys Found: [ ${discoveredKeys.join(', ')} ]. Type of user: ${typeof user}` 
         });
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
